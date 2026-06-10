@@ -1,0 +1,281 @@
+/* ── Reset & Base ─────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    background: #f0f4f8;
+    color: #2d3748;
+    min-height: 100vh;
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px 32px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+header p {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+
+/* ── Balance Card ─────────────────────────────────────────────────── */
+.balance-card {
+    background: white;
+    margin: 24px auto;
+    max-width: 960px;
+    border-radius: 16px;
+    padding: 24px 32px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.balance-card .balance-icon {
+    font-size: 2.5rem;
+}
+
+.balance-card .balance-info .balance-label {
+    font-size: 0.85rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.balance-card .balance-info #total-balance {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+/* ── Main Layout ──────────────────────────────────────────────────── */
+.main {
+    max-width: 960px;
+    margin: 0 auto 40px;
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 680px) {
+    .main {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────── */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #2d3748;
+    transition: border-color 0.2s;
+    outline: none;
+    width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #667eea;
+}
+
+.form-group input.error,
+.form-group select.error {
+    border-color: #fc8181;
+}
+
+.error-msg {
+    color: #e53e3e;
+    font-size: 0.8rem;
+    margin-top: -8px;
+    display: none;
+}
+
+.error-msg.visible {
+    display: block;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 4px;
+}
+
+.btn-add:hover {
+    opacity: 0.9;
+}
+
+.btn-add:active {
+    transform: scale(0.98);
+}
+
+/* ── Transaction List ─────────────────────────────────────────────── */
+.list-card {
+    grid-column: 1 / -1;
+}
+
+.transaction-list {
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.transaction-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.transaction-list::-webkit-scrollbar-track {
+    background: #f0f4f8;
+    border-radius: 3px;
+}
+
+.transaction-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #f7fafc;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+    animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.transaction-item .item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.transaction-item .item-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.transaction-item .item-category {
+    font-size: 0.78rem;
+    color: white;
+    background: #667eea;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.transaction-item .item-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.transaction-item .item-amount {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #2d3748;
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #fc8181;
+    font-size: 1.1rem;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.2s;
+    line-height: 1;
+}
+
+.btn-delete:hover {
+    background: #fff5f5;
+}
+
+.empty-state {
+    text-align: center;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    padding: 40px 0;
+}
+
+/* ── Chart ────────────────────────────────────────────────────────── */
+.chart-wrapper {
+    position: relative;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-empty {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    display: none;
+}

@@ -1,16 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transaction Tracker</title>
     <meta name="description" content="Track your food spending by category with a pie chart and running total." />
-
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="CSS/style.css" />
-
-    <!-- Chart.js (versi tetap agar tidak berubah tiba-tiba) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 
@@ -18,8 +14,16 @@
 
     <!-- ── Header ───────────────────────────────────────────────────── -->
     <header>
-        <h1>🍽️ Transaction Tracker</h1>
-        <p>Track your spending by category</p>
+        <div class="header-inner">
+            <div>
+                <h1>🍽️ Transaction Tracker</h1>
+                <p>Track your spending by category</p>
+            </div>
+            <!-- Dark/Light mode toggle -->
+            <button id="theme-toggle" class="btn-theme" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+                🌙
+            </button>
+        </div>
     </header>
 
     <!-- ── Total Balance ────────────────────────────────────────────── -->
@@ -46,6 +50,7 @@
                     <input type="number" id="input-amount" placeholder="Amount (e.g. 25000)" min="0" />
                     <span class="error-msg" id="err-amount">Please enter a valid amount.</span>
 
+                    <!-- Category selector -->
                     <select id="input-category">
                         <option value="">-- Select Category --</option>
                         <option value="Food">🍛 Food</option>
@@ -55,6 +60,14 @@
                         <option value="Other">📦 Other</option>
                     </select>
                     <span class="error-msg" id="err-category">Please select a category.</span>
+
+                    <!-- Custom category input (shown when "Add Custom…" is picked) -->
+                    <div id="custom-category-group" class="custom-category-group" hidden>
+                        <input type="text" id="input-custom-category" placeholder="Custom category name…"
+                            autocomplete="off" />
+                        <button type="button" id="btn-save-category" class="btn-save-cat">Save</button>
+                    </div>
+                    <span class="error-msg" id="err-custom-category">Please enter a custom category name.</span>
 
                     <button type="submit" class="btn-add">+ Add Transaction</button>
                 </div>
@@ -74,7 +87,21 @@
 
         <!-- Transaction List -->
         <div class="card list-card">
-            <h2>Transaction List</h2>
+            <!-- Header row with sort controls -->
+            <div class="list-header">
+                <h2>Transaction List</h2>
+                <div class="sort-controls">
+                    <label for="sort-select" class="sort-label">Sort by:</label>
+                    <select id="sort-select" class="sort-select">
+                        <option value="default">Default (newest first)</option>
+                        <option value="amount-desc">Amount: High → Low</option>
+                        <option value="amount-asc">Amount: Low → High</option>
+                        <option value="category-asc">Category: A → Z</option>
+                        <option value="category-desc">Category: Z → A</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="transaction-list" id="transaction-list">
                 <div class="empty-state" id="empty-state">
                     No transactions yet. Add one above!
@@ -84,7 +111,6 @@
 
     </div>
 
-    <!-- JavaScript — diletakkan sebelum </body> agar DOM sudah siap -->
     <script src="JS/app.js"></script>
 
 </body>

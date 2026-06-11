@@ -2,8 +2,22 @@
 let transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
 let nextId = parseInt(localStorage.getItem('nextId') || '1');
 
-// Warna per kategori (dipakai di chart & badge)
-const CATEGORY_COLORS = {
+// Built-in categories (can be extended by the user)
+const DEFAULT_CATEGORIES = [
+    { value: 'Food', label: '🍛 Food' },
+    { value: 'Drink', label: '🥤 Drink' },
+    { value: 'Snack', label: '🍿 Snack' },
+    { value: 'Dessert', label: '🍰 Dessert' },
+    { value: 'Other', label: '📦 Other' },
+];
+
+let customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+
+// Current sort order
+let currentSort = localStorage.getItem('sortOrder') || 'default';
+
+// Colour palette — built-ins first, extras generated
+const BASE_COLORS = {
     'Food': '#667eea',
     'Drink': '#48bb78',
     'Snack': '#ed8936',
@@ -11,9 +25,45 @@ const CATEGORY_COLORS = {
     'Other': '#a0aec0',
 };
 
+// Extra palette for custom categories (cycles if many are added)
+const EXTRA_PALETTE = [
+    '#f6ad55', '#68d391', '#63b3ed', '#fc8181', '#b794f4',
+    '#76e4f7', '#f687b3', '#fbd38d', '#9ae6b4', '#90cdf4',
+];
+
+function getCategoryColor(cat) {
+    if (BASE_COLORS[cat]) return BASE_COLORS[cat];
+    const idx = customCategories.indexOf(cat);
+    return EXTRA_PALETTE[idx % EXTRA_PALETTE.length] || '#a0aec0';
+}
+
+// ── Dark / Light Mode ──────────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+let isDark = localStorage.getItem('theme') === 'dark';
+
+function applyTheme() {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    themeToggle.textContent = isDark ? '☀️' : '🌙';
+    themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    // Update chart colours to match theme
+    updateChartTheme();
+}
+
+themeToggle.addEventListener('click', () => {
+    isDark = !isDark;
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    applyTheme();
+});
+
+function updateChartTheme() {
+    const textColor = isDark ? '#e2e8f0' : '#4a5568';
+    chart.options.plugins.legend.labels.color = textColor;
+    chart.update();
+}
+
 // ── Chart Setup ────────────────────────────────────────────────────────
-const chartCanvas = document.getElementById('spending-chart').getContext('2d');
-const chart = new Chart(chartCanvas, {
+const chartCtx = document.getElementById('spending-chart').getContext('2d');
+const chart = new Chart(chartCtx, {
     type: 'pie',
     data: {
         labels: [],
@@ -30,7 +80,7 @@ const chart = new Chart(chartCanvas, {
         plugins: {
             legend: {
                 position: 'bottom',
-                labels: { font: { size: 12 }, padding: 16 },
+                labels: { font: { size: 12 }, padding: 16, color: '#4a5568' },
             },
             tooltip: {
                 callbacks: {
@@ -47,9 +97,13 @@ const chart = new Chart(chartCanvas, {
 });
 
 // ── Storage Helpers ────────────────────────────────────────────────────
-function saveToStorage() {
+function saveTransactions() {
     localStorage.setItem('transactions', JSON.stringify(transactions));
     localStorage.setItem('nextId', String(nextId));
+}
+
+function saveCustomCategories() {
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
 }
 
 function formatRupiah(n) {
@@ -64,6 +118,93 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+// ── Category Select Helpers ────────────────────────────────────────────
+const categorySelect = document.getElementById('input-category');
+const customGroup = document.getElementById('custom-category-group');
+const customInput = document.getElementById('input-custom-category');
+const CUSTOM_SENTINEL = '__custom__';
+
+/** Rebuild the <select> from built-ins + saved custom categories */
+function rebuildCategorySelect(selectedValue) {
+    // Keep the placeholder option
+    categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+
+    [...DEFAULT_CATEGORIES, ...customCategories.map(c => ({ value: c, label: `🏷️ ${c}` }))]
+        .forEach(({ value, label }) => {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            if (value === selectedValue) opt.selected = true;
+            categorySelect.appendChild(opt);
+        });
+
+    // "Add custom category…" option at the bottom
+    const addOpt = document.createElement('option');
+    addOpt.value = CUSTOM_SENTINEL;
+    addOpt.textContent = '➕ Add custom category…';
+    categorySelect.appendChild(addOpt);
+}
+
+categorySelect.addEventListener('change', () => {
+    if (categorySelect.value === CUSTOM_SENTINEL) {
+        customGroup.hidden = false;
+        customInput.focus();
+    } else {
+        customGroup.hidden = true;
+        categorySelect.classList.remove('error');
+        document.getElementById('err-category').classList.remove('visible');
+    }
+    document.getElementById('err-custom-category').classList.remove('visible');
+    customInput.classList.remove('error');
+});
+
+document.getElementById('btn-save-category').addEventListener('click', () => {
+    const name = customInput.value.trim();
+    if (!name) {
+        customInput.classList.add('error');
+        document.getElementById('err-custom-category').classList.add('visible');
+        return;
+    }
+
+    // Avoid duplicates (case-insensitive)
+    const exists = [...DEFAULT_CATEGORIES.map(c => c.value.toLowerCase()),
+    ...customCategories.map(c => c.toLowerCase())]
+        .includes(name.toLowerCase());
+    if (!exists) {
+        customCategories.push(name);
+        saveCustomCategories();
+    }
+
+    rebuildCategorySelect(name); // re-render and pre-select the new category
+    customGroup.hidden = true;
+    customInput.value = '';
+    customInput.classList.remove('error');
+    document.getElementById('err-custom-category').classList.remove('visible');
+    document.getElementById('err-category').classList.remove('visible');
+    categorySelect.classList.remove('error');
+});
+
+// ── Sort Helpers ───────────────────────────────────────────────────────
+const sortSelect = document.getElementById('sort-select');
+sortSelect.value = currentSort;
+
+sortSelect.addEventListener('change', () => {
+    currentSort = sortSelect.value;
+    localStorage.setItem('sortOrder', currentSort);
+    renderList();
+});
+
+function getSortedTransactions() {
+    const arr = [...transactions];
+    switch (currentSort) {
+        case 'amount-desc': return arr.sort((a, b) => b.amount - a.amount);
+        case 'amount-asc': return arr.sort((a, b) => a.amount - b.amount);
+        case 'category-asc': return arr.sort((a, b) => a.category.localeCompare(b.category));
+        case 'category-desc': return arr.sort((a, b) => b.category.localeCompare(a.category));
+        default: return arr.reverse(); // newest first
+    }
+}
+
 // ── Render ─────────────────────────────────────────────────────────────
 function render() {
     renderList();
@@ -75,7 +216,6 @@ function renderList() {
     const listEl = document.getElementById('transaction-list');
     const emptyEl = document.getElementById('empty-state');
 
-    // Hapus item lama, pertahankan node empty-state
     listEl.querySelectorAll('.transaction-item').forEach(el => el.remove());
 
     if (transactions.length === 0) {
@@ -85,8 +225,8 @@ function renderList() {
 
     emptyEl.style.display = 'none';
 
-    transactions.forEach(tx => {
-        const color = CATEGORY_COLORS[tx.category] || '#a0aec0';
+    getSortedTransactions().forEach(tx => {
+        const color = getCategoryColor(tx.category);
         const item = document.createElement('div');
 
         item.className = 'transaction-item';
@@ -100,7 +240,8 @@ function renderList() {
             </div>
             <div class="item-right">
                 <span class="item-amount">${formatRupiah(tx.amount)}</span>
-                <button class="btn-delete" data-id="${tx.id}" title="Hapus" aria-label="Hapus ${escapeHtml(tx.name)}">🗑️</button>
+                <button class="btn-delete" data-id="${tx.id}"
+                    title="Delete" aria-label="Delete ${escapeHtml(tx.name)}">🗑️</button>
             </div>
         `;
 
@@ -130,7 +271,6 @@ function renderChart() {
     chartCanvas.style.display = 'block';
     emptyMsg.style.display = 'none';
 
-    // Kelompokkan total per kategori
     const totals = {};
     transactions.forEach(tx => {
         totals[tx.category] = (totals[tx.category] || 0) + tx.amount;
@@ -138,7 +278,7 @@ function renderChart() {
 
     chart.data.labels = Object.keys(totals);
     chart.data.datasets[0].data = Object.values(totals);
-    chart.data.datasets[0].backgroundColor = Object.keys(totals).map(c => CATEGORY_COLORS[c] || '#a0aec0');
+    chart.data.datasets[0].backgroundColor = Object.keys(totals).map(getCategoryColor);
     chart.update();
 }
 
@@ -148,10 +288,11 @@ document.getElementById('transaction-form').addEventListener('submit', function 
 
     const nameEl = document.getElementById('input-name');
     const amountEl = document.getElementById('input-amount');
-    const categoryEl = document.getElementById('input-category');
+    const customCatEl = document.getElementById('input-custom-category');
 
     let valid = true;
 
+    // Validate name
     if (!nameEl.value.trim()) {
         setError(nameEl, 'err-name', true);
         valid = false;
@@ -159,6 +300,7 @@ document.getElementById('transaction-form').addEventListener('submit', function 
         setError(nameEl, 'err-name', false);
     }
 
+    // Validate amount
     const amt = parseFloat(amountEl.value);
     if (!amountEl.value || isNaN(amt) || amt <= 0) {
         setError(amountEl, 'err-amount', true);
@@ -167,11 +309,16 @@ document.getElementById('transaction-form').addEventListener('submit', function 
         setError(amountEl, 'err-amount', false);
     }
 
-    if (!categoryEl.value) {
-        setError(categoryEl, 'err-category', true);
+    // Validate category
+    const isCustomPending = categorySelect.value === CUSTOM_SENTINEL;
+    if (!categorySelect.value || isCustomPending) {
+        setError(categorySelect, 'err-category', true);
         valid = false;
+        if (isCustomPending && !customCatEl.value.trim()) {
+            setError(customCatEl, 'err-custom-category', true);
+        }
     } else {
-        setError(categoryEl, 'err-category', false);
+        setError(categorySelect, 'err-category', false);
     }
 
     if (!valid) return;
@@ -180,12 +327,14 @@ document.getElementById('transaction-form').addEventListener('submit', function 
         id: nextId++,
         name: nameEl.value.trim(),
         amount: amt,
-        category: categoryEl.value,
+        category: categorySelect.value,
     });
 
-    saveToStorage();
+    saveTransactions();
     render();
     this.reset();
+    // reset() clears the select, so re-sync custom group visibility
+    customGroup.hidden = true;
 });
 
 // ── Delete ─────────────────────────────────────────────────────────────
@@ -195,7 +344,7 @@ document.getElementById('transaction-list').addEventListener('click', function (
 
     const id = parseInt(btn.dataset.id);
     transactions = transactions.filter(tx => tx.id !== id);
-    saveToStorage();
+    saveTransactions();
     render();
 });
 
@@ -211,12 +360,14 @@ function setError(inputEl, errId, hasError) {
     }
 }
 
-// Hapus error saat user mulai mengetik / memilih
-['input-name', 'input-amount', 'input-category'].forEach(id => {
-    const el = document.getElementById(id);
-    const evt = id === 'input-category' ? 'change' : 'input';
-    el.addEventListener(evt, () => el.classList.remove('error'));
+// Clear errors live
+['input-name', 'input-amount'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function () {
+        this.classList.remove('error');
+    });
 });
 
 // ── Init ───────────────────────────────────────────────────────────────
+rebuildCategorySelect();   // populate select with built-ins + any saved customs
+applyTheme();              // apply saved theme preference
 render();
